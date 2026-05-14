@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chat Lab</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-primary: #ffffff; --bg-secondary: #f5f5f3; --bg-sidebar: #f0eeea;
+  --text-primary: #111; --text-secondary: #555; --text-tertiary: #888;
+  --border: rgba(0,0,0,0.12); --border-md: rgba(0,0,0,0.22);
+  --accent: #1D9E75; --accent-dark: #0F6E56; --accent-light: #E1F5EE; --accent-mid: #5DCAA5;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+body { font-family: var(--font); background: var(--bg-secondary); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.page { display: none; width: 100%; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; }
+.page.active { display: flex; }
+#loading-page { flex-direction: column; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--accent-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-page p { font-size: 14px; color: var(--text-secondary); }
+
+/* LOGIN */
+.card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: 20px; width: 100%; max-width: 400px; overflow: hidden; }
+.card-top { background: var(--accent-dark); padding: 36px 36px 30px; text-align: center; }
+.logo-ring { width: 60px; height: 60px; border-radius: 18px; background: var(--accent); border: 2px solid var(--accent-mid); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.logo-ring i { font-size: 28px; color: var(--accent-light); }
+.card-top h1 { font-size: 24px; font-weight: 700; color: var(--accent-light); }
+.card-top p { font-size: 13px; color: var(--accent-mid); margin-top: 4px; }
+.card-body { padding: 28px 32px 32px; }
+.tab-row { display: flex; border: 0.5px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 22px; }
+.tab { flex: 1; padding: 9px; text-align: center; font-size: 13px; cursor: pointer; color: var(--text-secondary); background: var(--bg-secondary); border: none; font-family: var(--font); }
+.tab.active { background: var(--bg-primary); color: var(--accent-dark); font-weight: 600; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+.input-wrap { display: flex; align-items: center; border: 0.5px solid var(--border-md); border-radius: 8px; background: var(--bg-secondary); transition: border-color 0.15s, box-shadow 0.15s; }
+.input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.input-icon { width: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-tertiary); font-size: 17px; }
+.input-wrap input { flex: 1; padding: 11px 0; background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 14px; font-family: var(--font); min-width: 0; }
+.input-wrap input::placeholder { color: var(--text-tertiary); }
+.eye-btn { width: 38px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 17px; padding: 0; }
+.str-bar { height: 3px; border-radius: 2px; background: var(--border); margin-top: 8px; overflow: hidden; display: none; }
+.str-fill { height: 100%; border-radius: 2px; width: 0; transition: width 0.3s, background 0.3s; }
+.str-lbl { font-size: 11px; margin-top: 4px; display: none; }
+.forgot { text-align: right; margin-top: -6px; margin-bottom: 14px; }
+.forgot a { font-size: 12px; color: var(--accent); cursor: pointer; }
+.submit-btn { width: 100%; padding: 12px; border-radius: 8px; background: var(--accent); color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; transition: background 0.15s; }
+.submit-btn:hover { background: var(--accent-dark); }
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.err-box { background: #FCEBEB; border: 0.5px solid #F09595; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #A32D2D; display: none; margin-bottom: 14px; align-items: center; gap: 8px; }
+.terms { font-size: 11px; color: var(--text-tertiary); text-align: center; margin-top: 16px; line-height: 1.5; }
+
+/* APP */
+#app-page { padding: 0; }
+#app { display: flex; width: 100vw; height: 100vh; background: var(--bg-primary); position: relative; overflow: hidden; }
+
+/* SIDEBAR */
+#sidebar { width: 260px; border-right: 0.5px solid var(--border); display: flex; flex-direction: column; background: var(--bg-sidebar); flex-shrink: 0; transition: transform 0.22s cubic-bezier(.4,0,.2,1), width 0.22s cubic-bezier(.4,0,.2,1); }
+#sidebar.collapsed { transform: translateX(-260px); width: 0; min-width: 0; border-right: none; }
+#sidebar-top { padding: 14px 14px 12px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; white-space: nowrap; }
+#sidebar-top h1 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.sidebar-actions { display: flex; gap: 4px; }
+.snew-btn { background: var(--accent); border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 15px; }
+.snew-btn:hover { background: var(--accent-dark); }
+.sibtn { background: none; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-tertiary); font-size: 16px; }
+.sibtn:hover { background: rgba(0,0,0,0.06); color: var(--text-primary); }
+#rooms { flex: 1; overflow-y: auto; }
+.empty-sidebar { padding: 40px 16px; text-align: center; color: var(--text-tertiary); font-size: 13px; line-height: 1.7; }
+.empty-sidebar i { font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.4; }
+.room { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; border-bottom: 0.5px solid var(--border); transition: background 0.12s; }
+.room:hover { background: rgba(0,0,0,0.04); }
+.room.active { background: var(--bg-primary); border-left: 2px solid var(--accent); padding-left: 12px; }
+.room-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.room-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.room-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+#user-chip { padding: 10px 14px; border-top: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+#user-chip:hover { background: rgba(0,0,0,0.04); }
+.uav { width: 30px; height: 30px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; overflow: hidden; }
+.uav img { width: 100%; height: 100%; object-fit: cover; }
+#user-chip-name { font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* CHAT */
+#chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#chat-topbar { padding: 11px 14px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; min-height: 54px; background: var(--bg-primary); }
+.menu-toggle { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 22px; display: flex; padding: 4px; border-radius: 8px; }
+.menu-toggle:hover { background: var(--bg-secondary); }
+#topbar-room-info { display: none; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+#topbar-room-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+#topbar-room-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+#topbar-room-members { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbtn { background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 6px; border-radius: 8px; font-size: 19px; display: flex; }
+.hbtn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+#topbar-actions { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+#empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 14px; gap: 12px; }
+#empty-state i { font-size: 44px; opacity: 0.3; }
+#messages { flex: 1; overflow-y: auto; padding: 16px; flex-direction: column; gap: 2px; display: none; }
+.day-div { text-align: center; font-size: 11px; color: var(--text-tertiary); margin: 8px 0 12px; }
+.msg-group { margin-bottom: 8px; }
+.msg-row { display: flex; align-items: flex-end; gap: 8px; }
+.msg-row.out { flex-direction: row-reverse; }
+.av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; overflow: hidden; background: #9FE1CB; color: #085041; }
+.av img { width: 100%; height: 100%; object-fit: cover; }
+.sender-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; padding-left: 36px; }
+.bubble { max-width: 68%; padding: 9px 13px; border-radius: 16px; font-size: 14px; line-height: 1.5; word-break: break-word; }
+.bubble.in { background: var(--bg-secondary); color: var(--text-primary); border-bottom-left-radius: 4px; }
+.bubble.out { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+.bubble img { max-width: 220px; max-height: 220px; border-radius: 10px; display: block; cursor: pointer; }
+.msg-time { font-size: 10px; color: var(--text-tertiary); align-self: flex-end; margin-bottom: 2px; white-space: nowrap; }
+.msg-time.out { color: rgba(255,255,255,0.65); }
+#bottom-bar { border-top: 0.5px solid var(--border); display: none; flex-direction: column; }
+#input-row { padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px; }
+#img-btn { width: 36px; height: 36px; border-radius: 50%; background: none; border: 0.5px solid var(--border-md); cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+#img-btn:hover { background: var(--bg-secondary); }
+#msg-input { flex: 1; padding: 10px 14px; border-radius: 22px; border: 0.5px solid var(--border-md); background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; outline: none; resize: none; max-height: 100px; font-family: var(--font); line-height: 1.5; }
+#msg-input:focus { border-color: var(--accent); }
+#send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+#send-btn:hover { background: var(--accent-dark); }
+
+/* SETTINGS / PROFILE PANEL */
+.side-panel { position: absolute; top: 0; right: 0; height: 100%; width: 280px; background: var(--bg-primary); border-left: 0.5px solid var(--border); display: flex; flex-direction: column; transform: translateX(280px); transition: transform 0.22s cubic-bezier(.4,0,.2,1); z-index: 5; }
+.side-panel.open { transform: translateX(0); }
+.panel-top { padding: 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.panel-top h2 { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.panel-body { padding: 16px; overflow-y: auto; flex: 1; }
+
+/* PROFILE */
+.profile-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+.profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; overflow: hidden; position: relative; cursor: pointer; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar-edit { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); color: white; font-size: 11px; text-align: center; padding: 4px 0; }
+.profile-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.profile-email { font-size: 12px; color: var(--text-tertiary); }
+.profile-field { margin-bottom: 14px; }
+.profile-field label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px; font-weight: 500; }
+.profile-field input { width: 100%; padding: 9px 11px; border-radius: 8px; border: 0.5px solid var(--border-md); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; outline: none; font-family: var(--font); }
+.profile-field input:focus { border-color: var(--accent); }
+.save-btn { width: 100%; padding: 10px; border-radius: 8px; background: var(--accent); color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+.save-btn:hover { background: var(--accent-dark); }
+
+/* SETTINGS */
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 13px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.settings-label i { font-size: 17px; color: var(--text-secondary); }
+.settings-desc { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.toggle { width: 42px; height: 24px; border-radius: 12px; background: var(--border-md); border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.toggle.on { background: var(--accent); }
+.toggle::after { content: ''; position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: left 0.2s; }
+.toggle.on::after { left: 22px; }
+
+/* MODAL */
+#overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.28); display: none; align-items: center; justify-content: center; z-index: 20; }
+#overlay.open { display: flex; }
+.modal-box { background: var(--bg-primary); border-radius: 16px; border: 0.5px solid var(--border); padding: 22px; width: 320px; max-height: 80vh; overflow-y: auto; }
+.modal-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+.mfield { margin-bottom: 14px; }
+.mfield label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px; font-weight: 500; }
+.mfield input { width: 100%; padding: 9px 11px; border-radius: 8px; border: 0.5px solid var(--border-md); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; outline: none; font-family: var(--font); }
+.mfield input:focus { border-color: var(--accent); }
+.epick { display: flex; gap: 8px; flex-wrap: wrap; }
+.ep { font-size: 22px; padding: 4px 6px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+.ep.sel { border-color: var(--accent); background: var(--accent-light); }
+.mactions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+.mbtn { padding: 8px 18px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 0.5px solid var(--border-md); background: none; color: var(--text-primary); font-family: var(--font); }
+.mbtn.p { background: var(--accent); color: white; border-color: var(--accent); }
+.mbtn:hover { background: var(--bg-secondary); }
+.mbtn.p:hover { background: var(--accent-dark); }
+.member-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; margin-bottom: 10px; }
+.member-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px; color: var(--text-primary); }
+.member-item span { display: flex; align-items: center; gap: 8px; }
+.rm-btn { background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 15px; display: flex; padding: 2px; }
+.rm-btn:hover { color: #E24B4A; }
+.add-member-row { display: flex; gap: 6px; }
+.add-member-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 0.5px solid var(--border-md); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; outline: none; font-family: var(--font); }
+.add-member-row input:focus { border-color: var(--accent); }
+.add-member-row button { padding: 8px 12px; border-radius: 8px; background: var(--accent); color: white; border: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px; font-family: var(--font); white-space: nowrap; }
+.add-member-row button:hover { background: var(--accent-dark); }
+
+/* IMAGE PREVIEW */
+#img-preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; z-index: 999; cursor: pointer; }
+#img-preview-overlay.open { display: flex; }
+#img-preview-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 12px; }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
+.toast.show { opacity: 1; }
+@media (max-width: 600px) { .card-body { padding: 20px; } .modal-box { width: calc(100vw - 32px); } }
+</style>
+</head>
+<body>
+
+<div id="loading-page" class="page active">
+  <div class="spinner"></div>
+  <p>Henter Chat Lab...</p>
+</div>
+
+<div id="login-page" class="page">
+  <div class="card">
+    <div class="card-top">
+      <div class="logo-ring"><i class="ti ti-messages"></i></div>
+      <h1>Chat Lab</h1>
+      <p>Sikker beskedudveksling</p>
+    </div>
+    <div class="card-body">
+      <div class="tab-row">
+        <button class="tab active" id="tab-login" onclick="showTab('login')">Log ind</button>
+        <button class="tab" id="tab-signup" onclick="showTab('signup')">Opret konto</button>
+      </div>
+      <div id="err-box" class="err-box"><i class="ti ti-alert-circle"></i><span id="err-text"></span></div>
+      <div id="form-login">
+        <div class="field"><label>Email</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-mail"></i></span><input type="email" id="l-email" placeholder="din@email.dk" autocomplete="email" /></div>
+        </div>
+        <div class="field"><label>Adgangskode</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-lock"></i></span><input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password" /><button class="eye-btn" onclick="togglePw('l-pw',this)"><i class="ti ti-eye"></i></button></div>
+        </div>
+        <div class="forgot"><a onclick="showForgot()">Glemt adgangskode?</a></div>
+        <button class="submit-btn" id="login-btn" onclick="doLogin()"><i class="ti ti-login"></i> Log ind</button>
+        <div class="terms">Beskyttet med end-to-end kryptering</div>
+      </div>
+      <div id="form-signup" style="display:none;">
+        <div class="field"><label>Dit navn</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-user"></i></span><input type="text" id="s-name" placeholder="Fornavn Efternavn" autocomplete="name" /></div>
+        </div>
+        <div class="field"><label>Email</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-mail"></i></span><input type="email" id="s-email" placeholder="din@email.dk" autocomplete="email" /></div>
+        </div>
+        <div class="field"><label>Adgangskode</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-lock"></i></span><input type="password" id="s-pw" placeholder="Mindst 8 tegn" oninput="checkStr(this.value)" autocomplete="new-password" /><button class="eye-btn" onclick="togglePw('s-pw',this)"><i class="ti ti-eye"></i></button></div>
+          <div class="str-bar" id="str-bar"><div class="str-fill" id="str-fill"></div></div>
+          <div class="str-lbl" id="str-lbl"></div>
+        </div>
+        <div class="field"><label>Bekræft adgangskode</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-lock"></i></span><input type="password" id="s-pw2" placeholder="Gentag adgangskode" autocomplete="new-password" /><button class="eye-btn" onclick="togglePw('s-pw2',this)"><i class="ti ti-eye"></i></button></div>
+        </div>
+        <button class="submit-btn" id="signup-btn" onclick="doSignup()"><i class="ti ti-user-plus"></i> Opret konto</button>
+        <div class="terms">Ved oprettelse accepterer du vores vilkår</div>
+      </div>
+      <div id="form-forgot" style="display:none;">
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">Vi sender dig et link til at nulstille din adgangskode.</div>
+        <div class="field"><label>Email</label>
+          <div class="input-wrap"><span class="input-icon"><i class="ti ti-mail"></i></span><input type="email" id="f-email" placeholder="din@email.dk" /></div>
+        </div>
+        <button class="submit-btn" onclick="doForgot()"><i class="ti ti-send"></i> Send link</button>
+        <div style="text-align:center;margin-top:14px;"><a style="font-size:12px;color:var(--text-secondary);cursor:pointer;" onclick="showTab('login')">Tilbage til log ind</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-page" class="page">
+  <div id="app">
+    <div id="sidebar">
+      <div id="sidebar-top">
+        <h1>Chat Lab</h1>
+        <div class="sidebar-actions">
+          <button class="snew-btn" onclick="openNewRoomModal()" title="Nyt rum"><i class="ti ti-plus"></i></button>
+          <button class="sibtn" onclick="openPanel('settings-panel')" title="Indstillinger"><i class="ti ti-settings"></i></button>
+          <button class="sibtn" onclick="doLogout()" title="Log ud"><i class="ti ti-logout"></i></button>
+        </div>
+      </div>
+      <div id="rooms">
+        <div class="empty-sidebar" id="no-rooms-msg"><i class="ti ti-messages"></i>Ingen rum endnu.<br>Tryk + for at oprette et.</div>
+      </div>
+      <div id="user-chip" onclick="openPanel('profile-panel')" title="Min profil">
+        <div class="uav" id="user-av"><span id="user-av-letter">?</span></div>
+        <span id="user-chip-name"></span>
+        <i class="ti ti-chevron-right" style="font-size:14px;color:var(--text-tertiary);margin-left:auto;"></i>
+      </div>
+    </div>
+
+    <div id="chat-area">
+      <div id="chat-topbar">
+        <button class="menu-toggle" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div id="topbar-room-info">
+          <div id="topbar-room-icon"></div>
+          <div style="min-width:0;">
+            <div id="topbar-room-name"></div>
+            <div id="topbar-room-members"></div>
+          </div>
+        </div>
+        <div id="topbar-actions">
+          <button class="hbtn" id="btn-members" style="display:none;" onclick="openMembersModal()" title="Deltagere"><i class="ti ti-users"></i></button>
+          <button class="hbtn" id="btn-del-room" style="display:none;" onclick="deleteRoom()" title="Slet rum"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div id="empty-state"><i class="ti ti-message-circle"></i>Vælg eller opret et rum</div>
+      <div id="messages"></div>
+      <div id="bottom-bar">
+        <div id="input-row">
+          <button id="img-btn" onclick="document.getElementById('img-upload').click()" title="Send billede"><i class="ti ti-photo"></i></button>
+          <input type="file" id="img-upload" accept="image/*" style="display:none;" onchange="sendImage(this)" />
+          <textarea id="msg-input" rows="1" placeholder="Skriv en besked..."></textarea>
+          <button id="send-btn" onclick="sendMsg()"><i class="ti ti-send"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFIL PANEL -->
+    <div class="side-panel" id="profile-panel">
+      <div class="panel-top">
+        <h2>Min profil</h2>
+        <button class="sibtn" onclick="closeAllPanels()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="panel-body">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profile-avatar-big" onclick="document.getElementById('avatar-upload').click()">
+            <span id="profile-avatar-letter">?</span>
+            <div class="profile-avatar-edit">Skift foto</div>
+          </div>
+          <input type="file" id="avatar-upload" accept="image/*" style="display:none;" onchange="uploadAvatar(this)" />
+          <div id="profile-name-display" class="profile-name"></div>
+          <div id="profile-email-display" class="profile-email"></div>
+        </div>
+        <div class="profile-field">
+          <label>Navn</label>
+          <input type="text" id="profile-name-input" placeholder="Dit navn" />
+        </div>
+        <button class="save-btn" onclick="saveProfile()">Gem profil</button>
+        <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border);">
+          <button onclick="doLogout()" style="width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--border-md);background:none;color:var(--text-primary);font-size:14px;cursor:pointer;font-family:var(--font);">Log ud</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDSTILLINGER PANEL -->
+    <div class="side-panel" id="settings-panel">
+      <div class="panel-top">
+        <h2>Indstillinger</h2>
+        <button class="sibtn" onclick="closeAllPanels()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="panel-body">
+        <div class="settings-row">
+          <div><div class="settings-label"><i class="ti ti-sun"></i> Light mode</div><div class="settings-desc">Skift til lyst tema</div></div>
+          <button class="toggle" id="light-toggle" onclick="toggleLightMode()"></button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label"><i class="ti ti-lock"></i> Kryptering</div><div class="settings-desc">End-to-end, altid aktiv</div></div>
+          <button class="toggle on" style="opacity:0.5;cursor:default;"></button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label"><i class="ti ti-user"></i> Min profil</div></div>
+          <button onclick="openPanel('profile-panel')" style="font-size:12px;padding:6px 14px;border-radius:8px;border:0.5px solid var(--border-md);background:none;color:var(--text-primary);cursor:pointer;font-family:var(--font);">Åbn</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label"><i class="ti ti-logout"></i> Log ud</div></div>
+          <button onclick="doLogout()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:0.5px solid var(--border-md);background:none;color:var(--text-primary);cursor:pointer;font-family:var(--font);">Log ud</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="overlay">
+      <div class="modal-box" id="modal-content"></div>
+    </div>
+  </div>
+</div>
+
+<div id="img-preview-overlay" onclick="this.classList.remove('open')">
+  <img id="img-preview-img" src="" alt="Billede" />
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, setDoc, getDocs, onSnapshot, query, orderBy, where, serverTimestamp, deleteDoc, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBUC3T6gdd9TCq9AGCTl1XYbQ2JxQ_Ks2Y",
+  authDomain: "chatlab-87596.firebaseapp.com",
+  projectId: "chatlab-87596",
+  storageBucket: "chatlab-87596.firebasestorage.app",
+  messagingSenderId: "1015716209929",
+  appId: "1:1015716209929:web:46467b39ffc89107afdfd8"
+};
+
+const CLOUDINARY_CLOUD = 'dehbkrsow';
+const CLOUDINARY_PRESET = 'chatlab_unsigned';
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const EMOJIS = ['💬','🏠','🎮','📚','💼','🎵','🏃','🍕','✈️','🌿','🎉','🐶'];
+const COLORS = [{bg:'#9FE1CB',fg:'#085041'},{bg:'#B5D4F4',fg:'#0C447C'},{bg:'#CECBF6',fg:'#3C3489'},{bg:'#F5C4B3',fg:'#712B13'},{bg:'#C0DD97',fg:'#27500A'},{bg:'#FAC775',fg:'#633806'}];
+
+let currentUser = null, currentTab = 'login', selEmoji = EMOJIS[0];
+let rooms = [], activeRoomId = null, sidebarOpen = true, lightMode = false;
+let msgUnsub = null, roomsUnsub = null;
+let userProfiles = {}; // cache uid -> {displayName, photoURL}
+
+function mcolor(n) { return COLORS[Math.abs([...n].reduce((a,c)=>a+c.charCodeAt(0),0))%COLORS.length]; }
+function gt(ts) { const d = ts ? ts.toDate() : new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2800); }
+function showPage(id) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showErr(m) { document.getElementById('err-text').textContent = m; document.getElementById('err-box').style.display = 'flex'; }
+function hideErr() { document.getElementById('err-box').style.display = 'none'; }
+
+function avatarHtml(uid, name, size=28) {
+  const profile = userProfiles[uid];
+  const c = mcolor(name||'A');
+  const s = `width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.4)}px;font-weight:600;flex-shrink:0;overflow:hidden;`;
+  if (profile && profile.photoURL) {
+    return `<div style="${s}background:#eee;"><img src="${profile.photoURL}" style="width:100%;height:100%;object-fit:cover;" /></div>`;
+  }
+  return `<div style="${s}background:${c.bg};color:${c.fg};">${(name||'?')[0].toUpperCase()}</div>`;
+}
+
+async function fetchUserProfile(uid) {
+  if (userProfiles[uid]) return userProfiles[uid];
+  try {
+    const snap = await getDoc(doc(db,'users',uid));
+    if (snap.exists()) { userProfiles[uid] = snap.data(); return snap.data(); }
+  } catch(e) {}
+  return null;
+}
+
+function updateMyAvatar() {
+  const profile = userProfiles[currentUser?.uid];
+  const name = currentUser?.displayName || currentUser?.email || '?';
+  const letter = name[0].toUpperCase();
+  const av = document.getElementById('user-av');
+  const bigAv = document.getElementById('profile-avatar-big');
+  document.getElementById('user-av-letter').textContent = letter;
+  if (profile && profile.photoURL) {
+    av.innerHTML = `<img src="${profile.photoURL}" style="width:100%;height:100%;object-fit:cover;" />`;
+    if (bigAv) bigAv.innerHTML = `<img src="${profile.photoURL}" style="width:100%;height:100%;object-fit:cover;" /><div class="profile-avatar-edit">Skift foto</div>`;
+  } else {
+    av.innerHTML = `<span>${letter}</span>`;
+    if (bigAv) bigAv.innerHTML = `<span style="font-size:28px;font-weight:700;">${letter}</span><div class="profile-avatar-edit">Skift foto</div>`;
+  }
+}
+
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    currentUser = user;
+    const userData = { email: user.email, displayName: user.displayName || user.email.split('@')[0], photoURL: user.photoURL || '' };
+    await setDoc(doc(db,'users',user.uid), userData, { merge: true });
+    userProfiles[user.uid] = userData;
+    document.getElementById('user-chip-name').textContent = userData.displayName;
+    document.getElementById('profile-name-display').textContent = userData.displayName;
+    document.getElementById('profile-email-display').textContent = user.email;
+    document.getElementById('profile-name-input').value = userData.displayName;
+    updateMyAvatar();
+    showPage('app-page');
+    loadRooms();
+  } else {
+    currentUser = null;
+    if (msgUnsub) { msgUnsub(); msgUnsub = null; }
+    if (roomsUnsub) { roomsUnsub(); roomsUnsub = null; }
+    rooms = []; activeRoomId = null;
+    showPage('login-page');
+  }
+});
+
+window.showTab = t => {
+  currentTab = t;
+  ['login','signup','forgot'].forEach(x => document.getElementById('form-'+x).style.display = x===t ? 'block' : 'none');
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
+  hideErr();
+};
+window.showForgot = () => { document.getElementById('form-login').style.display='none'; document.getElementById('form-forgot').style.display='block'; document.getElementById('tab-login').classList.remove('active'); hideErr(); };
+window.togglePw = (id,btn) => { const i=document.getElementById(id); const s=i.type==='text'; i.type=s?'password':'text'; btn.querySelector('i').className=s?'ti ti-eye':'ti ti-eye-off'; };
+window.checkStr = val => {
+  const bar=document.getElementById('str-bar'),fill=document.getElementById('str-fill'),lbl=document.getElementById('str-lbl');
+  bar.style.display=val.length?'block':'none'; lbl.style.display=val.length?'block':'none';
+  let s=0; if(val.length>=8)s++; if(/[A-Z]/.test(val))s++; if(/[0-9]/.test(val))s++; if(/[^A-Za-z0-9]/.test(val))s++;
+  const lvls=[{w:'20%',bg:'#E24B4A',t:'Meget svag'},{w:'40%',bg:'#EF9F27',t:'Svag'},{w:'65%',bg:'#FAC775',t:'Okay'},{w:'100%',bg:'#1D9E75',t:'Stærk'}];
+  const l=lvls[Math.max(0,s-1)]; fill.style.width=l.w; fill.style.background=l.bg; lbl.textContent=l.t; lbl.style.color=l.bg;
+};
+
+window.doLogin = async () => {
+  const email=document.getElementById('l-email').value.trim(), pw=document.getElementById('l-pw').value;
+  hideErr();
+  if(!email||!pw){showErr('Udfyld venligst alle felter.');return;}
+  const btn=document.getElementById('login-btn'); btn.disabled=true; btn.textContent='Logger ind...';
+  try { await signInWithEmailAndPassword(auth,email,pw); }
+  catch(e) { btn.disabled=false; btn.innerHTML='<i class="ti ti-login"></i> Log ind'; showErr(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'?'Forkert email eller adgangskode.':'Noget gik galt: '+e.message); }
+};
+
+window.doSignup = async () => {
+  const name=document.getElementById('s-name').value.trim(), email=document.getElementById('s-email').value.trim(), pw=document.getElementById('s-pw').value, pw2=document.getElementById('s-pw2').value;
+  hideErr();
+  if(!name||!email||!pw||!pw2){showErr('Udfyld venligst alle felter.');return;}
+  if(!email.includes('@')){showErr('Indtast en gyldig emailadresse.');return;}
+  if(pw.length<8){showErr('Adgangskoden skal være mindst 8 tegn.');return;}
+  if(pw!==pw2){showErr('Adgangskoderne stemmer ikke overens.');return;}
+  const btn=document.getElementById('signup-btn'); btn.disabled=true; btn.textContent='Opretter konto...';
+  try {
+    const cred=await createUserWithEmailAndPassword(auth,email,pw);
+    await updateProfile(cred.user,{displayName:name});
+    await setDoc(doc(db,'users',cred.user.uid),{email,displayName:name,photoURL:''});
+  }
+  catch(e) { btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus"></i> Opret konto'; showErr(e.code==='auth/email-already-in-use'?'Denne email er allerede i brug.':'Noget gik galt: '+e.message); }
+};
+
+window.doForgot = async () => {
+  const email=document.getElementById('f-email').value.trim(); hideErr();
+  if(!email||!email.includes('@')){showErr('Indtast en gyldig emailadresse.');return;}
+  try { await sendPasswordResetEmail(auth,email); showToast('Nulstillingslink sendt!'); showTab('login'); }
+  catch(e) { showErr('Kunne ikke sende email.'); }
+};
+
+window.doLogout = async () => {
+  closeAllPanels(); closeOverlay();
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  if(roomsUnsub){roomsUnsub();roomsUnsub=null;}
+  await signOut(auth);
+};
+
+// PROFIL
+window.saveProfile = async () => {
+  const name = document.getElementById('profile-name-input').value.trim();
+  if(!name){showToast('Skriv et navn');return;}
+  try {
+    await updateProfile(currentUser, {displayName:name});
+    await setDoc(doc(db,'users',currentUser.uid),{displayName:name},{merge:true});
+    userProfiles[currentUser.uid] = {...(userProfiles[currentUser.uid]||{}), displayName:name};
+    document.getElementById('user-chip-name').textContent = name;
+    document.getElementById('profile-name-display').textContent = name;
+    updateMyAvatar();
+    showToast('Profil gemt!');
+  } catch(e) { showToast('Fejl: '+e.message); }
+};
+
+window.uploadAvatar = async input => {
+  const file = input.files[0]; if(!file) return;
+  input.value='';
+  if(file.size > 5*1024*1024){showToast('Billedet er for stort (max 5MB)');return;}
+  showToast('Uploader profilbillede...');
+  try {
+    const fd = new FormData(); fd.append('file',file); fd.append('upload_preset',CLOUDINARY_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,{method:'POST',body:fd});
+    const data = await res.json();
+    if(!data.secure_url) throw new Error('Upload fejlede');
+    await updateProfile(currentUser,{photoURL:data.secure_url});
+    await setDoc(doc(db,'users',currentUser.uid),{photoURL:data.secure_url},{merge:true});
+    userProfiles[currentUser.uid] = {...(userProfiles[currentUser.uid]||{}), photoURL:data.secure_url};
+    updateMyAvatar();
+    if(activeRoomId) renderMessages(lastMessages);
+    showToast('Profilbillede opdateret!');
+  } catch(e) { showToast('Fejl: '+e.message); }
+};
+
+// UI
+window.toggleSidebar = () => { sidebarOpen=!sidebarOpen; document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen); };
+window.openPanel = id => { document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open')); document.getElementById(id).classList.add('open'); };
+window.closeAllPanels = () => document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
+window.toggleLightMode = () => {
+  lightMode=!lightMode; document.getElementById('light-toggle').classList.toggle('on',lightMode);
+  const r=document.documentElement;
+  r.style.setProperty('--bg-secondary',lightMode?'#f0efed':'#f5f5f3');
+  r.style.setProperty('--bg-sidebar',lightMode?'#e5e3df':'#f0eeea');
+  document.body.style.background=lightMode?'#e5e3df':'#f5f5f3';
+};
+window.openOverlay = html => { document.getElementById('modal-content').innerHTML=html; document.getElementById('overlay').classList.add('open'); };
+window.closeOverlay = () => document.getElementById('overlay').classList.remove('open');
+
+// ROOMS
+function loadRooms() {
+  if(roomsUnsub) roomsUnsub();
+  const q = query(collection(db,'rooms'), where('members','array-contains',currentUser.uid), orderBy('createdAt','asc'));
+  roomsUnsub = onSnapshot(q, snap => {
+    rooms = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderRooms();
+    if(activeRoomId) { const r=rooms.find(x=>x.id===activeRoomId); if(r) updateTopbar(r); }
+  });
+}
+
+function renderRooms() {
+  const el=document.getElementById('rooms');
+  document.getElementById('no-rooms-msg').style.display=rooms.length?'none':'block';
+  el.querySelectorAll('.room').forEach(r=>r.remove());
+  rooms.forEach(r=>{
+    const d=document.createElement('div'); d.className='room'+(activeRoomId===r.id?' active':'');
+    d.onclick=()=>openRoom(r.id);
+    const cnt=Object.keys(r.memberNames||{}).length;
+    d.innerHTML=`<div class="room-icon" style="background:${r.color.bg}">${r.icon}</div><div><div class="room-name">${r.name}</div><div class="room-sub">${cnt} deltager${cnt===1?'':'e'}</div></div>`;
+    el.appendChild(d);
+  });
+}
+
+window.openNewRoomModal = () => {
+  selEmoji=EMOJIS[0];
+  openOverlay(`<h3>Nyt rum</h3>
+    <div class="mfield"><label>Navn på rum</label><input id="m-rname" type="text" placeholder="f.eks. Familien" /></div>
+    <div class="mfield"><label>Ikon</label><div class="epick">${EMOJIS.map(e=>`<span class="ep${e===selEmoji?' sel':''}" onclick="pickEmoji(this,'${e}')">${e}</span>`).join('')}</div></div>
+    <div class="mactions"><button class="mbtn" onclick="closeOverlay()">Annuller</button><button class="mbtn p" onclick="createRoom()">Opret</button></div>`);
+  setTimeout(()=>document.getElementById('m-rname').focus(),80);
+};
+
+window.pickEmoji = (el,e) => { selEmoji=e; document.querySelectorAll('.ep').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); };
+
+window.createRoom = async () => {
+  const name=document.getElementById('m-rname').value.trim(); if(!name){showToast('Skriv et navn');return;}
+  const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+  const displayName=currentUser.displayName||currentUser.email.split('@')[0];
+  try {
+    const ref=await addDoc(collection(db,'rooms'),{
+      name, icon:selEmoji, color,
+      members:[currentUser.uid],
+      memberNames:{[currentUser.uid]:displayName},
+      createdBy:currentUser.uid, createdAt:serverTimestamp()
+    });
+    closeOverlay(); openRoom(ref.id);
+  } catch(e) { showToast('Fejl: '+e.message); }
+};
+
+window.openRoom = async roomId => {
+  activeRoomId=roomId; renderRooms();
+  sidebarOpen=false; document.getElementById('sidebar').classList.add('collapsed'); closeAllPanels();
+  const room=rooms.find(r=>r.id===roomId); if(!room) return;
+  document.getElementById('empty-state').style.display='none';
+  const msgs=document.getElementById('messages'); msgs.style.display='flex'; msgs.style.flexDirection='column'; msgs.style.gap='2px';
+  document.getElementById('bottom-bar').style.display='flex';
+  document.getElementById('btn-members').style.display='flex';
+  document.getElementById('btn-del-room').style.display=currentUser.uid===room.createdBy?'flex':'none';
+  // prefetch member profiles
+  for(const uid of (room.members||[])) { if(!userProfiles[uid]) await fetchUserProfile(uid); }
+  updateTopbar(room); loadMessages(roomId);
+};
+
+function updateTopbar(room) {
+  document.getElementById('topbar-room-info').style.display='flex';
+  const ico=document.getElementById('topbar-room-icon');
+  ico.style.cssText=`width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:${room.color.bg};`;
+  ico.textContent=room.icon;
+  document.getElementById('topbar-room-name').textContent=room.name;
+  document.getElementById('topbar-room-members').textContent=Object.values(room.memberNames||{}).join(', ');
+}
+
+let lastMessages = [];
+function loadMessages(roomId) {
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  const q=query(collection(db,'rooms',roomId,'messages'),orderBy('createdAt','asc'));
+  msgUnsub=onSnapshot(q, snap=>{ lastMessages=snap.docs.map(d=>({id:d.id,...d.data()})); renderMessages(lastMessages); });
+}
+
+function renderMessages(msgs) {
+  const el=document.getElementById('messages');
+  if(!msgs.length){el.innerHTML='<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:14px;">Ingen beskeder endnu</div>';return;}
+  el.innerHTML='<div class="day-div">I dag</div>';
+  msgs.forEach(m=>{
+    const isOut=m.uid===currentUser.uid;
+    const name=m.senderName||'?';
+    const g=document.createElement('div'); g.className='msg-group';
+    const avHtml = avatarHtml(m.uid, name, 28);
+    const content = m.imageUrl
+      ? `<img src="${m.imageUrl}" alt="Billede" onclick="document.getElementById('img-preview-img').src='${m.imageUrl}';document.getElementById('img-preview-overlay').classList.add('open')" />`
+      : m.text.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    g.innerHTML=(!isOut?`<div class="sender-label">${name}</div>`:'')+
+      `<div class="msg-row ${isOut?'out':''}">
+        ${isOut?'':avHtml}
+        <div class="bubble ${isOut?'out':'in'}">${content}</div>
+        <span class="msg-time ${isOut?'out':''}">${gt(m.createdAt)}</span>
+        ${isOut?avatarHtml(currentUser.uid, currentUser.displayName||'?', 28):''}
+      </div>`;
+    el.appendChild(g);
+  });
+  el.scrollTop=el.scrollHeight;
+}
+
+window.sendMsg = async () => {
+  const inp=document.getElementById('msg-input'); const text=inp.value.trim();
+  if(!text||!activeRoomId) return;
+  inp.value=''; inp.style.height='auto';
+  const displayName=currentUser.displayName||currentUser.email.split('@')[0];
+  await addDoc(collection(db,'rooms',activeRoomId,'messages'),{text,uid:currentUser.uid,senderName:displayName,createdAt:serverTimestamp()});
+};
+
+window.sendImage = async input => {
+  const file=input.files[0]; if(!file||!activeRoomId) return;
+  input.value='';
+  if(file.size>10*1024*1024){showToast('Billedet er for stort (max 10MB)');return;}
+  showToast('Sender billede...');
+  const displayName=currentUser.displayName||currentUser.email.split('@')[0];
+  try {
+    const fd=new FormData(); fd.append('file',file); fd.append('upload_preset',CLOUDINARY_PRESET);
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,{method:'POST',body:fd});
+    const data=await res.json();
+    if(!data.secure_url) throw new Error('Upload fejlede');
+    await addDoc(collection(db,'rooms',activeRoomId,'messages'),{imageUrl:data.secure_url,uid:currentUser.uid,senderName:displayName,createdAt:serverTimestamp()});
+  } catch(e) { showToast('Fejl: '+e.message); }
+};
+
+window.openMembersModal = () => { const room=rooms.find(r=>r.id===activeRoomId); if(room) renderMembersModal(room); };
+
+function renderMembersModal(room) {
+  const names=room.memberNames||{};
+  const isOwner=room.createdBy===currentUser.uid;
+  const listHtml=Object.entries(names).map(([uid,name])=>{
+    const profile=userProfiles[uid];
+    const avHtml=profile&&profile.photoURL
+      ?`<img src="${profile.photoURL}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" />`
+      :`<div style="width:24px;height:24px;border-radius:50%;background:${mcolor(name).bg};color:${mcolor(name).fg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">${name[0].toUpperCase()}</div>`;
+    return `<div class="member-item">
+      <span>${avHtml}${name}${uid===currentUser.uid?' (dig)':''}</span>
+      ${uid!==currentUser.uid&&isOwner?`<button class="rm-btn" onclick="removeMember('${uid}','${name.replace(/'/g,"\\'")}')"><i class="ti ti-x"></i></button>`:''}
+    </div>`;
+  }).join('');
+  openOverlay(`<h3>Deltagere i ${room.name}</h3>
+    <div class="mfield"><label>Deltagere</label><div class="member-list">${listHtml||'<div style="color:var(--text-tertiary);font-size:13px;padding:8px 0;">Ingen</div>'}</div></div>
+    <div class="mfield"><label>Tilføj deltager med email</label>
+      <div class="add-member-row"><input id="new-member-email" type="email" placeholder="vens@email.dk" /><button onclick="addMemberByEmail()"><i class="ti ti-plus"></i> Tilføj</button></div>
+    </div>
+    <div class="mactions"><button class="mbtn p" onclick="closeOverlay()">Færdig</button></div>`);
+  document.getElementById('new-member-email').addEventListener('keydown',e=>{if(e.key==='Enter')addMemberByEmail();});
+}
+
+window.addMemberByEmail = async () => {
+  const inp=document.getElementById('new-member-email'); const email=inp.value.trim().toLowerCase();
+  if(!email||!email.includes('@')){showToast('Indtast en gyldig email');return;}
+  const room=rooms.find(r=>r.id===activeRoomId); if(!room) return;
+  const usersSnap=await getDocs(collection(db,'users'));
+  let foundUid=null, foundName=null;
+  usersSnap.forEach(d=>{ if((d.data().email||'').toLowerCase()===email){foundUid=d.id;foundName=d.data().displayName||email;} });
+  if(!foundUid){showToast('Ingen bruger med den email — de skal oprette konto først');return;}
+  if((room.members||[]).includes(foundUid)){showToast('Denne person er allerede i rummet');return;}
+  try {
+    await updateDoc(doc(db,'rooms',activeRoomId),{members:arrayUnion(foundUid),[`memberNames.${foundUid}`]:foundName});
+    await fetchUserProfile(foundUid);
+    inp.value=''; showToast(foundName+' er tilføjet!');
+  } catch(e) { showToast('Fejl: '+e.message); }
+};
+
+window.removeMember = async (uid,name) => {
+  const room=rooms.find(r=>r.id===activeRoomId); if(!room) return;
+  try {
+    const updNames={...(room.memberNames||{})}; delete updNames[uid];
+    await updateDoc(doc(db,'rooms',activeRoomId),{members:arrayRemove(uid),memberNames:updNames});
+    showToast(name+' er fjernet');
+  } catch(e) { showToast('Fejl: '+e.message); }
+};
+
+window.deleteRoom = async () => {
+  const room=rooms.find(r=>r.id===activeRoomId);
+  if(!room||!confirm(`Slet rummet "${room.name}"?`)) return;
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  await deleteDoc(doc(db,'rooms',activeRoomId));
+  activeRoomId=null; sidebarOpen=true;
+  document.getElementById('sidebar').classList.remove('collapsed');
+  document.getElementById('empty-state').style.display='flex';
+  document.getElementById('messages').style.display='none';
+  document.getElementById('bottom-bar').style.display='none';
+  document.getElementById('topbar-room-info').style.display='none';
+  document.getElementById('btn-members').style.display='none';
+  document.getElementById('btn-del-room').style.display='none';
+};
+
+document.getElementById('msg-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+document.getElementById('msg-input').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';});
+document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeOverlay();});
+document.querySelectorAll('#form-login input,#form-signup input').forEach(inp=>{
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){if(currentTab==='login')doLogin();else if(currentTab==='signup')doSignup();}});
+  inp.addEventListener('input',hideErr);
+});
+</script>
+</body>
+</html>
