@@ -545,7 +545,7 @@ window.uploadAvatar = async input => {
 };
 
 // UI
-window.toggleSidebar = () => { sidebarOpen=!sidebarOpen; document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen); };
+window.toggleSidebar = () => { sidebarOpen=!sidebarOpen; document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen); if(sidebarOpen){ document.getElementById('messages').style.display='none'; document.getElementById('bottom-bar').style.display='none'; document.getElementById('topbar-room-info').style.display='none'; document.getElementById('btn-members').style.display='none'; document.getElementById('btn-del-room').style.display='none'; document.getElementById('empty-state').style.display='none'; } else if(activeRoomId){ document.getElementById('messages').style.display='flex'; document.getElementById('bottom-bar').style.display='flex'; document.getElementById('topbar-room-info').style.display='flex'; document.getElementById('btn-members').style.display='flex'; } };
 window.openPanel = id => { document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open')); document.getElementById(id).classList.add('open'); };
 window.closeAllPanels = () => document.querySelectorAll('.side-panel').forEach(p=>p.classList.remove('open'));
 window.toggleLightMode = () => {
